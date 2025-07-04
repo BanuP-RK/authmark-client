@@ -251,7 +251,7 @@
 // export default Upload;
 
 import React, { useState, useEffect, useRef } from "react";
-import PdfPreview from "../components/PdfPreview";
+import PdfPreview from "../components/PDFPreview";
 import SignatureInput from "../components/SignatureInput";
 import Draggable from "react-draggable";
 import { ArrowLeftIcon, ArrowRightIcon, DownloadIcon, PenLine } from "lucide-react";
