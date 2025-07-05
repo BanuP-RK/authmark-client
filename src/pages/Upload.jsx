@@ -270,25 +270,25 @@ const Upload = () => {
   const documentId = "demo-doc";
   const pdfRef = useRef();
 
- const handleFileChange = (e) => {
-  const file = e.target.files[0];
-  if (file?.type === "application/pdf") {
-    setPdfFile(file);
-    setCurrentPage(1);
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
-    // 🔥 Count uploaded for this user
-    const user = JSON.parse(localStorage.getItem("user"));
-    const email = user?.email;
-    if (email) {
-      let uploadedDocs = JSON.parse(localStorage.getItem("uploadedDocs")) || {};
-      uploadedDocs[email] = (uploadedDocs[email] || 0) + 1;
-      localStorage.setItem("uploadedDocs", JSON.stringify(uploadedDocs));
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file?.type === "application/pdf") {
+      setPdfFile(file);
+      setCurrentPage(1);
+
+      const user = JSON.parse(localStorage.getItem("user"));
+      const email = user?.email;
+      if (email) {
+        let uploadedDocs = JSON.parse(localStorage.getItem("uploadedDocs")) || {};
+        uploadedDocs[email] = (uploadedDocs[email] || 0) + 1;
+        localStorage.setItem("uploadedDocs", JSON.stringify(uploadedDocs));
+      }
+    } else {
+      alert("Please upload a valid PDF file.");
     }
-
-  } else {
-    alert("Please upload a valid PDF file.");
-  }
-};
+  };
 
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
@@ -298,7 +298,7 @@ const Upload = () => {
     const fetchSavedSignatures = async () => {
       try {
         const res = await fetch(
-          `http://localhost:5000/api/signatures?documentId=${documentId}&page=${currentPage}`,
+          `${baseUrl}/api/signatures?documentId=${documentId}&page=${currentPage}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -314,7 +314,7 @@ const Upload = () => {
       }
     };
     if (pdfFile) fetchSavedSignatures();
-  }, [currentPage, pdfFile]);
+  }, [baseUrl,currentPage, pdfFile]);
 
   const handleSaveSignature = async () => {
     if (!signature.name) return alert("Please type your signature.");
@@ -327,7 +327,7 @@ const Upload = () => {
       text: signature.name,
     };
     try {
-      const res = await fetch("http://localhost:5000/api/signatures", {
+      const res = await fetch(`${baseUrl}/api/signatures`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -350,7 +350,7 @@ const Upload = () => {
 
   const handleSavedDragStop = async (id, data) => {
     try {
-      await fetch(`http://localhost:5000/api/signatures/${id}`, {
+      await fetch(`${baseUrl}/api/signatures/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -384,25 +384,26 @@ const Upload = () => {
     formData.append("pdf", pdfBlob, "signed-document.pdf");
 
     try {
-      const uploadRes = await fetch("http://localhost:5000/api/upload/upload-signed-pdf", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-  },
-  body: formData,
-});
+      const uploadRes = await fetch(`${baseUrl}/api/upload/upload-signed-pdf`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formData,
+      });
       const uploadData = await uploadRes.json();
       if (uploadRes.ok) {
         alert("Signed PDF uploaded to server ✅");
         localStorage.setItem("signedFilename", uploadData.filename);
-      const user = JSON.parse(localStorage.getItem("user"));
-  const email = user?.email;
-  if (email) {
-    let signedDocs = JSON.parse(localStorage.getItem("signedDocs")) || {};
-    signedDocs[email] = (signedDocs[email] || 0) + 1;
-    localStorage.setItem("signedDocs", JSON.stringify(signedDocs));
-  }
-} else {
+
+        const user = JSON.parse(localStorage.getItem("user"));
+        const email = user?.email;
+        if (email) {
+          let signedDocs = JSON.parse(localStorage.getItem("signedDocs")) || {};
+          signedDocs[email] = (signedDocs[email] || 0) + 1;
+          localStorage.setItem("signedDocs", JSON.stringify(signedDocs));
+        }
+      } else {
         alert(uploadData.error || "Upload failed ❌");
       }
     } catch (err) {
@@ -414,7 +415,7 @@ const Upload = () => {
     const filename = localStorage.getItem("signedFilename");
     if (!filename) return alert("No signed file found. Please sign and upload first.");
     try {
-      const response = await fetch(`http://localhost:5000/signed/${filename}`);
+      const response = await fetch(`${baseUrl}/signed/${filename}`);
       if (!response.ok) throw new Error("Failed to fetch file");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -433,7 +434,7 @@ const Upload = () => {
     const filename = localStorage.getItem("signedFilename");
     if (!filename) return alert("Please upload the signed PDF before emailing.");
     try {
-      const res = await fetch("http://localhost:5000/api/email/send-signed-pdf", {
+      const res = await fetch(`${baseUrl}/api/email/send-signed-pdf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: emailToSend, filename }),
